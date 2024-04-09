@@ -1,0 +1,83 @@
+service: step-functions-etl-demo
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-step-functions
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'eu-west-1'}
+  environment:
+    STAGE: ${sls:stage}
+    SERVICE_NAME: ${self:service}
+
+resources:
+  Resources:
+    ETLParams:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/${self:service}/etl_params
+        Description: ETL Params
+        Type: String
+        Value: ${file(./params/${self:provider.stage}-etl-params.txt)}
+    LambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:service}-lamda-role-${self:provider.stage}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: lambda-policy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - ssm:GetParameters
+                    - ssm:GetParameter
+                    - ssm:PutParameter
+                  Resource:
+                    - "arn:aws:ssm:eu-west-1:${aws:accountId}:parameter/${self:provider.stage}/*"
+
+
+functions:
+  step1:
+    handler: function_step1/step1.handle_event
+    name: ${self:service}-lambda-step1-${self:provider.stage}
+    memorySize: 1024
+    timeout: 30
+    role: LambdaRole
+    package:
+      individually: true
+      patterns:
+        - '!README.md'
+        - '!params/**'
+        - '!step-function/**'
+        - '!function_step2/**'
+  step2:
+    handler: function_step2/step2.handle_event
+    name: ${self:service}-lambda-step2-${self:provider.stage}
+    memorySize: 1024
+    timeout: 30
+    role: LambdaRole
+    package:
+      individually: true
+      patterns:
+        - '!README.md'
+        - '!params/**'
+        - '!step-function/**'
+        - '!function_step1/**'
+
+stepFunctions:
+  validate: true
+  stateMachines:
+      step_job: ${file(./step-function/etl-job.yml)}

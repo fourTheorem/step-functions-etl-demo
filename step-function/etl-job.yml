@@ -1,0 +1,40 @@
+name: ${self:service}-step-function-${self:provider.stage}
+
+definition:
+  Comment: Orchestration of data processing
+  StartAt: step 1
+  States:
+    step 1:
+      Type: Task
+      Resource: arn:aws:states:::lambda:invoke
+      OutputPath: $.Payload
+      Parameters:
+        Payload.$: $
+        FunctionName: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-lambda-step1-${self:provider.stage}
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.TooManyRequestsException
+          IntervalSeconds: 1
+          MaxAttempts: 1
+          BackoffRate: 2
+      Next: step 2
+    step 2:
+      Type: Task
+      Resource: arn:aws:states:::lambda:invoke
+      OutputPath: $.Payload
+      Parameters:
+        Payload.$: $
+        FunctionName: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-lambda-step2-${self:provider.stage}
+      Retry:
+        - ErrorEquals:
+            - Lambda.ServiceException
+            - Lambda.AWSLambdaException
+            - Lambda.SdkClientException
+            - Lambda.TooManyRequestsException
+          IntervalSeconds: 1
+          MaxAttempts: 1
+          BackoffRate: 2
+      End: true

@@ -1,0 +1,6 @@
+{
+    "source_step1": "bucket1/source/dev/", 
+    "destination_step1": "bucket1/destination/developer2/step1/",
+    "source_step2": "bucket1/destination/developer2/step1/",
+    "destination_step2": "bucket1/destination/developer2/step2/"
+}
